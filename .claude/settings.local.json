@@ -10,7 +10,11 @@
       "Bash(node *)",
       "Bash(npx playwright *)",
       "Bash(npx vite *)",
-      "Bash(curl -s http://localhost:5173)"
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(git commit *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(git add *)"
     ]
   }
 }
