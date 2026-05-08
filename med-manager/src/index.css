@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* PRD / CLAUDE 设计 token，全站 CSS 变量 */
+:root {
+  --color-bg: #f5f8fa;
+  --color-card: #ffffff;
+  --color-primary: #4a8fc7;
+  --color-primary-hover: #3a7db5;
+  --color-primary-light: #d9ecf7;
+  --color-success: #5da882;
+  --color-success-light: #e5f4ec;
+  --color-text-primary: #2d3a45;
+  --color-text-secondary: #5c6b7a;
+  --color-border: #e2e8ef;
+  --color-warn: #a67c00;
+  --color-warn-bg: #fdf6e3;
+  --color-error: #b54747;
+  --color-error-bg: #fdeded;
+
+  --tag-pending-consult-bg: #d9ecf7;
+  --tag-pending-consult-fg: #4a8fc7;
+  --tag-booked-bg: #d9ecf7;
+  --tag-booked-fg: #5c6b7a;
+  --tag-due-bg: #d9ecf7;
+  --tag-due-fg: #2d3a45;
+  --tag-done-bg: #e5f4ec;
+  --tag-done-fg: #5da882;
+  --tag-missed-bg: #fdf6e3;
+  --tag-missed-fg: #a67c00;
+  --tag-makeup-bg: #e5f4ec;
+  --tag-makeup-fg: #3d7a5c;
+  --tag-stock-low-bg: #fdf6e3;
+  --tag-stock-low-fg: #a67c00;
+  --tag-rx-expiring-bg: #fdf6e3;
+  --tag-rx-expiring-fg: #a67c00;
+  --tag-rx-expired-bg: #fdeded;
+  --tag-rx-expired-fg: #b54747;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100dvh;
+}
