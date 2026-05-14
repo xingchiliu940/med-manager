@@ -8,9 +8,10 @@ import {
   listDoseSlotRowsForDay,
   rollMissedDueRecords,
 } from '../../services/doseService'
-import { markDoseMakeup, markDoseMissed, markDoseTaken } from '../../services/doseActions'
+import { markDoseMakeup, markDoseMissed, markDoseTaken, undoDoseTaken } from '../../services/doseActions'
 import { reconcileAll } from '../../services/reconcileService'
-import { togglePlanEnabled } from '../../services/planService'
+import { deleteMedicationPlan, togglePlanEnabled } from '../../services/planService'
+import { isRxExpired, syncRxToMedicationPlan } from '../../services/rxService'
 import { getStockTotal } from '../../services/stockService'
 import { todayLocalString } from '../../utils/date'
 import { DoseRecordStatus } from '../../types/enums'
@@ -99,6 +100,40 @@ export function PlanPage() {
     })
   }
 
+  const handleUndoTaken = (doseId: string) => {
+    setRoot((prev) => {
+      const res = undoDoseTaken(prev, doseId)
+      if (!res.ok) toast.show(res.message)
+      else toast.show('已撤回已服状态')
+      return res.root
+    })
+  }
+
+  const handleCreatePlanFromRx = () => {
+    const rx = [...root.prescriptions]
+      .filter((item) => !item.usedForPlan && !isRxExpired(item))
+      .sort((a, b) => b.issuedAt.localeCompare(a.issuedAt))[0]
+
+    if (!rx) {
+      toast.show('暂无可用于生成计划的有效处方')
+      return
+    }
+
+    setRoot((prev) => {
+      const res = syncRxToMedicationPlan(prev, rx.id)
+      if (!res.ok) toast.show(res.message)
+      else toast.show('已根据处方生成用药计划')
+      return res.ok ? res.root : prev
+    })
+  }
+
+  const handleDeletePlan = (planId: string, drugName: string) => {
+    const ok = window.confirm(`确定删除「${drugName}」的用药计划吗？删除后今日提醒、历史应服记录、库存预警也会同步清理。`)
+    if (!ok) return
+    setRoot((prev) => deleteMedicationPlan(prev, planId))
+    toast.show('已删除用药计划')
+  }
+
   return (
     <PageLayout title="用药计划">
       <div className="mb-4 flex rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-1">
@@ -171,25 +206,40 @@ export function PlanPage() {
                         </p>
                         <p className="mt-1 text-caption text-[var(--color-text-secondary)]">库存剩余：{stock}</p>
                       </div>
-                      <span
-                        className="shrink-0 rounded-lg px-2 py-1 text-[14px] font-medium"
-                        style={{
-                          background:
-                            record.status === DoseRecordStatus.Taken || record.status === DoseRecordStatus.Makeup
-                              ? 'var(--tag-done-bg)'
-                              : record.status === DoseRecordStatus.Missed
-                                ? 'var(--tag-missed-bg)'
-                                : 'var(--tag-due-bg)',
-                          color:
-                            record.status === DoseRecordStatus.Taken || record.status === DoseRecordStatus.Makeup
-                              ? 'var(--tag-done-fg)'
-                              : record.status === DoseRecordStatus.Missed
-                                ? 'var(--tag-missed-fg)'
-                                : 'var(--tag-due-fg)',
-                        }}
-                      >
-                        {statusLabel[record.status] ?? record.status}
-                      </span>
+                      {record.status === DoseRecordStatus.Taken ? (
+                        <button
+                          type="button"
+                          className="shrink-0 rounded-lg px-2 py-1 text-[14px] font-medium"
+                          style={{
+                            background: 'var(--tag-done-bg)',
+                            color: 'var(--tag-done-fg)',
+                          }}
+                          onClick={() => handleUndoTaken(record.id)}
+                          aria-label="撤回已服状态"
+                        >
+                          已服
+                        </button>
+                      ) : (
+                        <span
+                          className="shrink-0 rounded-lg px-2 py-1 text-[14px] font-medium"
+                          style={{
+                            background:
+                              record.status === DoseRecordStatus.Makeup
+                                ? 'var(--tag-done-bg)'
+                                : record.status === DoseRecordStatus.Missed
+                                  ? 'var(--tag-missed-bg)'
+                                  : 'var(--tag-due-bg)',
+                            color:
+                              record.status === DoseRecordStatus.Makeup
+                                ? 'var(--tag-done-fg)'
+                                : record.status === DoseRecordStatus.Missed
+                                  ? 'var(--tag-missed-fg)'
+                                  : 'var(--tag-due-fg)',
+                          }}
+                        >
+                          {statusLabel[record.status] ?? record.status}
+                        </span>
+                      )}
                     </div>
                     {!done ? (
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -229,6 +279,9 @@ export function PlanPage() {
         </section>
       ) : (
         <section>
+          <Button variant="secondary" type="button" className="mb-3 w-full" onClick={handleCreatePlanFromRx}>
+            从处方生成用药计划
+          </Button>
           <Button type="button" className="mb-4 w-full" onClick={openAdd}>
             添加用药计划
           </Button>
@@ -276,6 +329,14 @@ export function PlanPage() {
                         onClick={() => commit((prev) => togglePlanEnabled(prev, p.id))}
                       >
                         {p.enabled ? '停用' : '启用'}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        type="button"
+                        className="text-[var(--color-error)]"
+                        onClick={() => handleDeletePlan(p.id, d?.name ?? '该药品')}
+                      >
+                        删除
                       </Button>
                     </div>
                   </li>

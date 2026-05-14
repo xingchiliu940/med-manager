@@ -32,16 +32,19 @@ function MainView({ onNavigate }: { onNavigate: (v: ProfileView) => void }) {
 
   return (
     <PageLayout title="个人中心">
-      {/* 用户档案摘要 */}
+      {/* 个人信息 */}
       <section className="mb-4 rounded-card border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-        <h2 className="text-card-title text-[var(--color-text-primary)]">健康档案</h2>
+        <h2 className="text-card-title text-[var(--color-text-primary)]">个人信息</h2>
         <div className="mt-2 space-y-1 text-body text-[var(--color-text-primary)]">
-          <p>称呼：{profile.displayName}</p>
-          {profile.birthYear && <p>出生年份：{profile.birthYear}</p>}
-          {profile.chronicNote && <p className="text-[var(--color-text-secondary)]">慢病备注：{profile.chronicNote}</p>}
+          {profile.name && <p>姓名：{profile.name}</p>}
+          {profile.age > 0 && <p>年龄：{profile.age} 岁</p>}
+          {profile.gender && profile.gender !== '其他' && <p>性别：{profile.gender}</p>}
+          {profile.phone && <p>手机号：{profile.phone}</p>}
+          {profile.medicalRecord && <p className="text-[var(--color-text-secondary)]">病历：{profile.medicalRecord}</p>}
+          {!profile.name && <p className="text-[var(--color-text-secondary)]">尚未填写个人信息</p>}
         </div>
         <Button variant="ghost" className="mt-3" onClick={() => onNavigate('edit')}>
-          编辑档案
+          编辑
         </Button>
       </section>
 
@@ -77,71 +80,93 @@ function NavCard({ label, desc, badge, onClick }: { label: string; desc: string;
   )
 }
 
-/** U-01 档案编辑 */
+/** U-01 个人信息编辑 */
 function ProfileEditView({ onBack }: { onBack: () => void }) {
   const root = useAppStore((s) => s.root)
   const setRoot = useAppStore((s) => s.setRoot)
   const { show: toast } = useToast()
-  const [displayName, setDisplayName] = useState(root.userProfile.displayName)
-  const [birthYear, setBirthYear] = useState(root.userProfile.birthYear?.toString() ?? '')
-  const [chronicNote, setChronicNote] = useState(root.userProfile.chronicNote ?? '')
+  const [name, setName] = useState(root.userProfile.name)
+  const [age, setAge] = useState(root.userProfile.age?.toString() ?? '')
+  const [gender, setGender] = useState<'男' | '女' | '其他'>(root.userProfile.gender ?? '其他')
+  const [phone, setPhone] = useState(root.userProfile.phone ?? '')
+  const [medicalRecord, setMedicalRecord] = useState(root.userProfile.medicalRecord ?? '')
 
   const handleSave = useCallback(() => {
-    if (!displayName.trim()) {
-      toast('称呼不能为空')
-      return
-    }
-    const year = birthYear.trim() ? parseInt(birthYear, 10) : undefined
-    if (year !== undefined && (year < 1900 || year > new Date().getFullYear())) {
-      toast('出生年份不合法')
+    const ageNum = age.trim() ? parseInt(age, 10) : 0
+    if (ageNum < 0 || ageNum > 150) {
+      toast('年龄不合法')
       return
     }
     setRoot((prev) => ({
       ...prev,
       userProfile: {
-        displayName: displayName.trim(),
-        birthYear: year,
-        chronicNote: chronicNote.trim() || undefined,
+        name: name.trim(),
+        age: ageNum,
+        gender,
+        phone: phone.trim(),
+        medicalRecord: medicalRecord.trim(),
       },
     }))
-    toast('档案已保存')
+    toast('个人信息已保存')
     onBack()
-  }, [displayName, birthYear, chronicNote, setRoot, toast, onBack])
+  }, [name, age, gender, phone, medicalRecord, setRoot, toast, onBack])
 
   return (
-    <PageLayout title="编辑档案">
+    <PageLayout title="编辑个人信息">
       <div className="mb-4 flex items-center gap-2">
         <Button variant="ghost" onClick={onBack}>← 返回</Button>
       </div>
 
       <div className="space-y-4">
         <label className="block">
-          <span className="text-body text-[var(--color-text-primary)]">称呼</span>
+          <span className="text-body text-[var(--color-text-primary)]">姓名</span>
           <input
             className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-body text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:outline-none"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="家人"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="请输入姓名"
           />
         </label>
         <label className="block">
-          <span className="text-body text-[var(--color-text-primary)]">出生年份</span>
+          <span className="text-body text-[var(--color-text-primary)]">年龄</span>
           <input
             className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-body text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:outline-none"
-            value={birthYear}
-            onChange={(e) => setBirthYear(e.target.value)}
-            placeholder="如 1955"
+            value={age}
+            onChange={(e) => setAge(e.target.value)}
+            placeholder="请输入年龄"
             type="number"
           />
         </label>
         <label className="block">
-          <span className="text-body text-[var(--color-text-primary)]">慢病备注</span>
+          <span className="text-body text-[var(--color-text-primary)]">性别</span>
+          <select
+            className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-body text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:outline-none"
+            value={gender}
+            onChange={(e) => setGender(e.target.value as '男' | '女' | '其他')}
+          >
+            <option value="男">男</option>
+            <option value="女">女</option>
+            <option value="其他">其他</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className="text-body text-[var(--color-text-primary)]">手机号</span>
+          <input
+            className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-body text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:outline-none"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="请输入手机号"
+            type="tel"
+          />
+        </label>
+        <label className="block">
+          <span className="text-body text-[var(--color-text-primary)]">病历</span>
           <textarea
             className="mt-1 w-full rounded-lg border border-[var(--color-border)] bg-white px-3 py-2 text-body text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] focus:border-[var(--color-primary)] focus:outline-none"
-            rows={3}
-            value={chronicNote}
-            onChange={(e) => setChronicNote(e.target.value)}
-            placeholder="高血压、糖尿病等备注信息"
+            rows={4}
+            value={medicalRecord}
+            onChange={(e) => setMedicalRecord(e.target.value)}
+            placeholder="请输入病历信息"
           />
         </label>
       </div>

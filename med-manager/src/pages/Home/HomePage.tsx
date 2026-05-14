@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import { PageLayout } from '../../components/layout/PageLayout'
+import { Button } from '../../components/ui/Button'
+import { useToast } from '../../hooks/useToast'
 import { useAppStore } from '../../store'
 import { todayLocalString } from '../../utils/date'
 import {
@@ -7,17 +9,29 @@ import {
   expectedDoseCountForDay,
   listDoseSlotRowsForDay,
 } from '../../services/doseService'
+import { getStockTotal } from '../../services/stockService'
+import { markDoseTaken, undoDoseTaken } from '../../services/doseActions'
 import { DoseRecordStatus } from '../../types/enums'
 import { DEPARTMENTS } from '../../constants/departments'
 
-/** 首页仪表盘 H-01～H-05（骨架：空状态与快捷入口已就绪） */
+const statusLabel: Record<string, string> = {
+  [DoseRecordStatus.Due]: '待服',
+  [DoseRecordStatus.Taken]: '已服',
+  [DoseRecordStatus.Missed]: '漏服',
+  [DoseRecordStatus.Makeup]: '补服已记',
+}
+
+/** 首页仪表盘 H-01～H-05 */
 export function HomePage() {
   const root = useAppStore((s) => s.root)
+  const setRoot = useAppStore((s) => s.setRoot)
+  const toast = useToast()
   const day = todayLocalString()
   const denom = expectedDoseCountForDay(root, day)
   const taken = adherenceNumeratorForDay(root, day)
   const ratio = denom === 0 ? 0 : Math.min(1, taken / denom)
-  const dueRows = listDoseSlotRowsForDay(root, day).filter((r) => r.record.status === DoseRecordStatus.Due)
+
+  const allRows = listDoseSlotRowsForDay(root, day)
 
   const nextFollow = root.followUps.slice().sort((a, b) => a.at.localeCompare(b.at))[0]
 
@@ -28,9 +42,26 @@ export function HomePage() {
     return qty <= d.lowStockThreshold
   })
 
+  const handleTaken = (doseId: string) => {
+    setRoot((prev) => {
+      const res = markDoseTaken(prev, doseId)
+      if (!res.ok) toast.show(res.message)
+      return res.root
+    })
+  }
+
+  const handleUndoTaken = (doseId: string) => {
+    setRoot((prev) => {
+      const res = undoDoseTaken(prev, doseId)
+      if (!res.ok) toast.show(res.message)
+      else toast.show('已撤回已服状态')
+      return res.root
+    })
+  }
+
   return (
     <PageLayout title="今日概览">
-      {/* H-02 服药完成率：纯 CSS 环形进度 */}
+      {/* H-02 服药完成率 */}
       <section
         className="mb-4 flex items-center gap-4 rounded-card border border-[var(--color-border)] bg-[var(--color-card)] p-4"
         aria-label="今日服药完成率"
@@ -46,7 +77,7 @@ export function HomePage() {
           </div>
         </div>
         <div>
-          <p className="text-caption text-[var(--color-text-secondary)]">今日完成率（演示）</p>
+          <p className="text-caption text-[var(--color-text-secondary)]">今日完成率</p>
           <p className="text-body text-[var(--color-text-primary)]">
             {denom === 0 ? '今日无应服次数' : `依从完成 ${taken} / 今日应服 ${denom} 次`}
           </p>
@@ -56,7 +87,7 @@ export function HomePage() {
       {/* H-01 今日待服药 */}
       <section className="mb-4 rounded-card border border-[var(--color-border)] bg-[var(--color-card)] p-4">
         <h2 className="text-card-title text-[var(--color-text-primary)]">今日待服药</h2>
-        {dueRows.length === 0 ? (
+        {allRows.length === 0 ? (
           <p className="mt-2 text-body text-[var(--color-text-secondary)]">
             {denom === 0
               ? '还没有用药计划。可到「用药计划」添加，或由处方同步生成。'
@@ -64,18 +95,63 @@ export function HomePage() {
           </p>
         ) : (
           <ul className="mt-2 space-y-2">
-            {dueRows.map(({ record, plan, drugName, scheduleTime }) => (
-              <li
-                key={record.id}
-                className="flex min-h-[72px] flex-col justify-center rounded-lg border border-[var(--color-border)] px-3 py-2 text-body text-[var(--color-text-primary)]"
-              >
-                <span className="font-medium">{drugName}</span>
-                <span className="mt-1 text-caption text-[var(--color-text-secondary)]">
-                  {scheduleTime} · 每次 {plan.doseAmount}
-                  {plan.doseUnit}
-                </span>
-              </li>
-            ))}
+            {allRows.map(({ record, plan, drugName, scheduleTime }) => {
+              const done = record.status === DoseRecordStatus.Taken || record.status === DoseRecordStatus.Makeup
+              const stock = getStockTotal(root, plan.drugMasterId)
+              const hasStock = stock >= plan.doseAmount
+              const canTake = record.status === DoseRecordStatus.Due && hasStock
+
+              return (
+                <li
+                  key={record.id}
+                  className="flex min-h-[72px] flex-col gap-3 rounded-lg border border-[var(--color-border)] px-3 py-2 text-body text-[var(--color-text-primary)] sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex flex-1 items-center gap-3">
+                    <div className="flex-1">
+                      <span className="font-medium">{drugName}</span>
+                      <span className="mt-1 block text-caption text-[var(--color-text-secondary)]">
+                        {scheduleTime} · 每次 {plan.doseAmount}{plan.doseUnit}
+                      </span>
+                      {!done && (
+                        <span className="mt-1 block text-caption text-[var(--color-text-secondary)]">
+                          库存剩余：{stock}
+                        </span>
+                      )}
+                    </div>
+                    {done ? (
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-lg px-3 py-1 text-[15px] font-medium"
+                        style={{ background: 'var(--tag-done-bg)', color: 'var(--tag-done-fg)' }}
+                        onClick={() => handleUndoTaken(record.id)}
+                      >
+                        {statusLabel[record.status]}
+                      </button>
+                    ) : (
+                      <span
+                        className="shrink-0 rounded-lg px-3 py-1 text-[15px] font-medium"
+                        style={{
+                          background: 'var(--tag-due-bg)',
+                          color: 'var(--tag-due-fg)',
+                        }}
+                      >
+                        待服
+                      </span>
+                    )}
+                  </div>
+                  {!done && (
+                    <Button
+                      type="button"
+                      className="w-full shrink-0 sm:w-auto"
+                      disabled={!canTake}
+                      onClick={() => handleTaken(record.id)}
+                    >
+                      {!hasStock ? '库存不足' : '已服用'}
+                    </Button>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>
@@ -89,7 +165,7 @@ export function HomePage() {
           <div className="mt-2 space-y-2 text-body text-[var(--color-text-primary)]">
             {nextFollow ? (
               <div className="rounded-lg bg-[var(--tag-booked-bg)] px-3 py-2 text-[var(--tag-booked-fg)]">
-                下一场：{nextFollow.title}（{nextFollow.at}）
+                下一场：{nextFollow.title}（{new Date(nextFollow.at).toLocaleDateString('zh-CN')}）
               </div>
             ) : null}
             {root.consultations.filter((c) => c.status !== 'completed' && c.status !== 'cancelled').map((c) => {

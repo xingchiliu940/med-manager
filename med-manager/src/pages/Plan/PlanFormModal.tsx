@@ -55,7 +55,7 @@ function buildInitialForm(
       timePointsText: plan.timePoints.join(','),
       startDate: plan.startDate,
       endDate: plan.endDate ?? '',
-      initialStock: '0',
+      initialStock: '30',
       lowStock: String(lowStockThreshold),
       enabled: plan.enabled,
     }
@@ -70,7 +70,7 @@ function buildInitialForm(
     timePointsText: defaultTimePointsForDaily(2).join(','),
     startDate: todayLocalString(),
     endDate: '',
-    initialStock: '0',
+    initialStock: '30',
     lowStock: String(defaultLow),
     enabled: true,
   }
@@ -285,14 +285,25 @@ export function PlanFormModal({
           {mode === 'add' ? (
             <label className="block">
               <span className="text-caption text-[var(--color-text-secondary)]">初始库存数量</span>
-              <input
-                type="number"
-                min={0}
-                step={1}
-                className="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-3 text-body"
-                value={form.initialStock}
-                onChange={(e) => patch({ ...form, initialStock: e.target.value })}
-              />
+              <div className="mt-1 flex items-center gap-0 rounded-lg border border-[var(--color-border)] bg-white overflow-hidden">
+                <button
+                  type="button"
+                  className="w-12 h-12 flex items-center justify-center text-[22px] text-[var(--color-text-secondary)] active:bg-[var(--color-primary-light)]"
+                  onClick={() => patch({ ...form, initialStock: String(Math.max(0, Number(form.initialStock) - 1)) })}
+                >
+                  −
+                </button>
+                <span className="flex-1 text-center text-body font-medium text-[var(--color-text-primary)]">
+                  {form.initialStock}
+                </span>
+                <button
+                  type="button"
+                  className="w-12 h-12 flex items-center justify-center text-[22px] text-[var(--color-text-secondary)] active:bg-[var(--color-primary-light)]"
+                  onClick={() => patch({ ...form, initialStock: String(Number(form.initialStock) + 1) })}
+                >
+                  +
+                </button>
+              </div>
             </label>
           ) : null}
           {mode === 'edit' ? (
@@ -307,14 +318,25 @@ export function PlanFormModal({
           ) : null}
           <label className="block">
             <span className="text-caption text-[var(--color-text-secondary)]">低库存阈值（剩余量提醒）</span>
-            <input
-              type="number"
-              min={0}
-              step={1}
-              className="mt-1 w-full rounded-lg border border-[var(--color-border)] px-3 py-3 text-body"
-              value={form.lowStock}
-              onChange={(e) => patch({ ...form, lowStock: e.target.value })}
-            />
+            <div className="mt-1 flex items-center gap-0 rounded-lg border border-[var(--color-border)] bg-white overflow-hidden">
+              <button
+                type="button"
+                className="w-12 h-12 flex items-center justify-center text-[22px] text-[var(--color-text-secondary)] active:bg-[var(--color-primary-light)]"
+                onClick={() => patch({ ...form, lowStock: String(Math.max(0, Number(form.lowStock) - 1)) })}
+              >
+                −
+              </button>
+              <span className="flex-1 text-center text-body font-medium text-[var(--color-text-primary)]">
+                {form.lowStock}
+              </span>
+              <button
+                type="button"
+                className="w-12 h-12 flex items-center justify-center text-[22px] text-[var(--color-text-secondary)] active:bg-[var(--color-primary-light)]"
+                onClick={() => patch({ ...form, lowStock: String(Number(form.lowStock) + 1) })}
+              >
+                +
+              </button>
+            </div>
           </label>
         </div>
 

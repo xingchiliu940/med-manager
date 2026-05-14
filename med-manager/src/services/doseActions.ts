@@ -3,8 +3,9 @@
  */
 
 import type { AppPersistRoot, DoseRecord } from '../types'
-import { DoseRecordStatus } from '../types/enums'
+import { DoseRecordStatus, StockBatchSource } from '../types/enums'
 import { formatLocalDate } from '../utils/date'
+import { newId } from '../utils/id'
 import { doseUnitMatchesStock } from './drugService'
 import { deductStockFifo, getStockTotal } from './stockService'
 
@@ -58,6 +59,45 @@ export function markDoseTaken(root: AppPersistRoot, doseId: string): Result {
   }
 
   return { ok: true, root: replaceRecord(deducted.root, nextRecord) }
+}
+
+/** 撤回已服：恢复为待服，并把本次扣减的库存补回一条手动批次 */
+export function undoDoseTaken(root: AppPersistRoot, doseId: string): Result {
+  const record = findRecord(root, doseId)
+  if (!record) return { ok: false, root, message: '未找到该应服记录。' }
+  if (record.status !== DoseRecordStatus.Taken) return { ok: false, root, message: '仅已服记录可撤回。' }
+
+  const plan = root.medicationPlans.find((p) => p.id === record.planId)
+  if (!plan) return { ok: false, root, message: '用药计划不存在。' }
+  const drug = root.drugMasters.find((d) => d.id === plan.drugMasterId)
+  if (!drug) return { ok: false, root, message: '药品主数据不存在。' }
+
+  if (!doseUnitMatchesStock(plan.doseUnit, drug.stockUnit)) {
+    return { ok: false, root, message: '剂量单位与库存单位不一致，无法恢复库存。' }
+  }
+
+  const nextRecord: DoseRecord = {
+    ...record,
+    status: DoseRecordStatus.Due,
+    operatedAt: undefined,
+    adherenceDate: undefined,
+  }
+
+  const restoredRoot: AppPersistRoot = {
+    ...root,
+    stockBatches: [
+      ...root.stockBatches,
+      {
+        id: newId(),
+        drugMasterId: plan.drugMasterId,
+        quantity: plan.doseAmount,
+        receivedAt: new Date().toISOString(),
+        source: StockBatchSource.Manual,
+      },
+    ],
+  }
+
+  return { ok: true, root: replaceRecord(restoredRoot, nextRecord) }
 }
 
 /** 标记漏服：不扣库存 */

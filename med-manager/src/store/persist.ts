@@ -15,7 +15,7 @@ import {
 export function createDefaultRoot(): AppPersistRoot {
   return {
     schemaVersion: SCHEMA_VERSION_INITIAL,
-    userProfile: { displayName: '家人' },
+    userProfile: { name: '', age: 0, gender: '其他', phone: '', medicalRecord: '' },
     drugMasters: [],
     stockBatches: [],
     medicationPlans: [],
@@ -39,12 +39,31 @@ function migrate(raw: unknown): AppPersistRoot {
   if (!raw || typeof raw !== 'object') return base
   const o = raw as Record<string, unknown>
   const ver = typeof o.schemaVersion === 'number' ? o.schemaVersion : 0
-  if (ver < SCHEMA_VERSION_INITIAL) return base
+  if (ver < 1) return base
 
   const incoming = raw as AppPersistRoot
+
+  // v1 → v2: userProfile 结构变更
+  const profile: AppPersistRoot['userProfile'] = (() => {
+    const up = incoming.userProfile as unknown as Record<string, unknown> | undefined
+    if (!up) return base.userProfile
+    // v1 旧字段
+    if ('displayName' in up || 'birthYear' in up || 'chronicNote' in up) {
+      return base.userProfile
+    }
+    return {
+      name: (up.name as string) ?? '',
+      age: (up.age as number) ?? 0,
+      gender: (up.gender as '男' | '女' | '其他') ?? '其他',
+      phone: (up.phone as string) ?? '',
+      medicalRecord: (up.medicalRecord as string) ?? '',
+    }
+  })()
+
   return {
-    schemaVersion: incoming.schemaVersion,
-    userProfile: incoming.userProfile ?? base.userProfile,
+    ...incoming,
+    schemaVersion: 2,
+    userProfile: profile,
     drugMasters: incoming.drugMasters ?? base.drugMasters,
     stockBatches: incoming.stockBatches ?? base.stockBatches,
     medicationPlans: incoming.medicationPlans ?? base.medicationPlans,

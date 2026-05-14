@@ -188,3 +188,32 @@ export function togglePlanEnabled(root: AppPersistRoot, planId: string): AppPers
     ),
   }
 }
+
+/** 删除用药计划，并清理该计划产生的待服记录；药品无人再使用时同步清理库存与库存提醒 */
+export function deleteMedicationPlan(root: AppPersistRoot, planId: string): AppPersistRoot {
+  const plan = root.medicationPlans.find((p) => p.id === planId)
+  if (!plan) return root
+
+  const medicationPlans = root.medicationPlans.filter((p) => p.id !== planId)
+  const doseRecords = root.doseRecords.filter((r) => r.planId !== planId)
+  const drugStillUsed = medicationPlans.some((p) => p.drugMasterId === plan.drugMasterId)
+
+  if (drugStillUsed) {
+    return {
+      ...root,
+      medicationPlans,
+      doseRecords,
+    }
+  }
+
+  return {
+    ...root,
+    medicationPlans,
+    doseRecords,
+    drugMasters: root.drugMasters.filter((d) => d.id !== plan.drugMasterId),
+    stockBatches: root.stockBatches.filter((b) => b.drugMasterId !== plan.drugMasterId),
+    reminders: root.reminders.filter(
+      (r) => r.relatedId !== plan.drugMasterId && r.businessKey !== `stock_low:${plan.drugMasterId}`,
+    ),
+  }
+}

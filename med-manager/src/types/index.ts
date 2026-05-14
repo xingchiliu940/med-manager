@@ -12,9 +12,11 @@ export * from './enums'
 
 /** 用户档案（单用户本地） */
 export interface UserProfile {
-  displayName: string
-  birthYear?: number
-  chronicNote?: string
+  name: string
+  age: number
+  gender: '男' | '女' | '其他'
+  phone: string
+  medicalRecord: string
 }
 
 /** 药品主数据 */
@@ -158,4 +160,4 @@ export interface AppPersistRoot {
 }
 
 /** 默认导出占位，避免仅类型文件被误判为空模块 */
-export const SCHEMA_VERSION_INITIAL = 1 as const
+export const SCHEMA_VERSION_INITIAL = 2 as const

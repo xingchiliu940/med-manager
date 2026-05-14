@@ -349,15 +349,27 @@ function PurchaseConfirmModal({
                   {line.doseText} · {line.frequencyText}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <label className="text-caption text-[var(--color-text-secondary)]">数量</label>
-                <input
-                  type="number"
-                  min={1}
-                  className="w-16 rounded-lg border border-[var(--color-border)] bg-white px-2 py-1 text-center text-body text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:outline-none"
-                  value={quantities[i]}
-                  onChange={(e) => onQuantityChange(i, Math.max(1, parseInt(e.target.value) || 1))}
-                />
+                <div className="flex items-center gap-0 rounded-lg border border-[var(--color-border)] bg-white overflow-hidden">
+                  <button
+                    type="button"
+                    className="w-10 h-9 flex items-center justify-center text-[20px] text-[var(--color-text-secondary)] active:bg-[var(--color-primary-light)]"
+                    onClick={() => onQuantityChange(i, Math.max(1, quantities[i] - 1))}
+                  >
+                    −
+                  </button>
+                  <span className="w-12 text-center text-body font-medium text-[var(--color-text-primary)]">
+                    {quantities[i]}
+                  </span>
+                  <button
+                    type="button"
+                    className="w-10 h-9 flex items-center justify-center text-[20px] text-[var(--color-text-secondary)] active:bg-[var(--color-primary-light)]"
+                    onClick={() => onQuantityChange(i, quantities[i] + 1)}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             </li>
           ))}
