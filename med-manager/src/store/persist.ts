@@ -47,10 +47,11 @@ function migrate(raw: unknown): AppPersistRoot {
   const profile: AppPersistRoot['userProfile'] = (() => {
     const up = incoming.userProfile as unknown as Record<string, unknown> | undefined
     if (!up) return base.userProfile
-    // v1 旧字段
+    // v1 旧字段：重置为空
     if ('displayName' in up || 'birthYear' in up || 'chronicNote' in up) {
       return base.userProfile
     }
+    // v2 新字段
     return {
       name: (up.name as string) ?? '',
       age: (up.age as number) ?? 0,
@@ -60,8 +61,8 @@ function migrate(raw: unknown): AppPersistRoot {
     }
   })()
 
+  // 不 spread incoming，显式逐项迁移，避免携带旧字段
   return {
-    ...incoming,
     schemaVersion: 2,
     userProfile: profile,
     drugMasters: incoming.drugMasters ?? base.drugMasters,
