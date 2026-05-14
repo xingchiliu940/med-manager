@@ -6,6 +6,7 @@ import { ConsultModePage } from './ConsultModePage'
 import { ConsultFormPage } from './ConsultFormPage'
 import { ConsultBookingPage } from './ConsultBookingPage'
 import { ConsultCompletePage } from './ConsultCompletePage'
+import { ConsultChatPage } from './ConsultChatPage'
 
 /** 在线问诊入口：根据 view 参数路由到不同子页面 */
 export function ConsultPage() {
@@ -18,6 +19,9 @@ export function ConsultPage() {
   }
   if (view === 'mode') {
     return <ConsultModePage />
+  }
+  if (view === 'chat') {
+    return <ConsultChatPage />
   }
   if (view === 'form') {
     return <ConsultFormPage />

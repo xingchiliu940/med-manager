@@ -22,7 +22,7 @@ export function DoctorListPage({ departmentId }: DoctorListPageProps) {
   )
 
   const handleSelectDoctor = (doctorId: string) => {
-    navigate(`/consult?view=mode&dept=${departmentId}&doctor=${doctorId}`)
+    navigate(`/consult?view=chat&dept=${departmentId}&doctor=${doctorId}`)
   }
 
   const handleBack = () => {

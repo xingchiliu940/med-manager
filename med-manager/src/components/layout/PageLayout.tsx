@@ -11,9 +11,9 @@ export function PageLayout({
   footer?: ReactNode
 }) {
   return (
-    <div className="mx-auto flex min-h-0 max-w-app flex-1 flex-col px-4 pb-28 pt-3">
+    <div className="mx-auto flex min-h-0 w-full max-w-app flex-1 flex-col px-4 pb-28 pt-3">
       {title ? <h1 className="mb-3 text-hero text-[var(--color-text-primary)]">{title}</h1> : null}
-      <div className="min-h-0 flex-1">{children}</div>
+      <div className="min-h-0 w-full flex-1">{children}</div>
       {footer}
     </div>
   )

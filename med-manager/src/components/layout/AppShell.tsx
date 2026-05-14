@@ -10,15 +10,15 @@ const tabs: { to: string; label: string; end?: boolean }[] = [
 
 export function AppShell() {
   return (
-    <div className="mx-auto flex min-h-screen max-w-app flex-col bg-[var(--color-bg)]">
-      <main className="flex min-h-0 flex-1 flex-col">
+    <div className="mx-auto flex min-h-screen w-full max-w-app flex-col bg-[var(--color-bg)]">
+      <main className="flex min-h-0 w-full flex-1 flex-col">
         <Outlet />
       </main>
       <nav
         className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-card)]"
         aria-label="主导航"
       >
-        <div className="mx-auto flex max-w-app justify-around px-1 pt-1">
+        <div className="mx-auto flex w-full max-w-app justify-around px-1 pt-1">
           {tabs.map((t) => (
             <NavLink
               key={t.to}
